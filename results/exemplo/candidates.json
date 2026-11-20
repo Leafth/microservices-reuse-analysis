@@ -1,0 +1,127 @@
+[
+  {
+    "project": "exemplo",
+    "component": "express",
+    "origin": "unverified",
+    "location": "",
+    "declared_services": [
+      "service-a",
+      "service-b",
+      "service-c"
+    ],
+    "services_with_references": [
+      "service-a",
+      "service-b"
+    ],
+    "services_count": 3,
+    "references": [
+      {
+        "component": "express",
+        "service": "service-a",
+        "file": "projects\\exemplo\\service-a\\index.js",
+        "line": 1,
+        "reference": "express",
+        "evidence": "import express from \"express\""
+      },
+      {
+        "component": "express",
+        "service": "service-b",
+        "file": "projects\\exemplo\\service-b\\index.js",
+        "line": 1,
+        "reference": "express",
+        "evidence": "require(\"express\")"
+      }
+    ],
+    "status": "candidate"
+  },
+  {
+    "project": "exemplo",
+    "component": "axios",
+    "origin": "unverified",
+    "location": "",
+    "declared_services": [
+      "service-a",
+      "service-b"
+    ],
+    "services_with_references": [
+      "service-a",
+      "service-b"
+    ],
+    "services_count": 2,
+    "references": [
+      {
+        "component": "axios",
+        "service": "service-a",
+        "file": "projects\\exemplo\\service-a\\index.js",
+        "line": 2,
+        "reference": "axios",
+        "evidence": "import axios from \"axios\""
+      },
+      {
+        "component": "axios",
+        "service": "service-b",
+        "file": "projects\\exemplo\\service-b\\index.js",
+        "line": 2,
+        "reference": "axios",
+        "evidence": "require(\"axios\")"
+      }
+    ],
+    "status": "candidate"
+  },
+  {
+    "project": "exemplo",
+    "component": "lodash",
+    "origin": "unverified",
+    "location": "",
+    "declared_services": [
+      "service-b",
+      "service-c"
+    ],
+    "services_with_references": [
+      "service-b"
+    ],
+    "services_count": 2,
+    "references": [
+      {
+        "component": "lodash",
+        "service": "service-b",
+        "file": "projects\\exemplo\\service-b\\index.js",
+        "line": 3,
+        "reference": "lodash",
+        "evidence": "require(\"lodash\")"
+      }
+    ],
+    "status": "candidate"
+  },
+  {
+    "project": "exemplo",
+    "component": "@exemplo/shared-utils",
+    "origin": "internal_candidate",
+    "location": "projects\\exemplo\\packages\\shared-utils",
+    "declared_services": [],
+    "services_with_references": [
+      "service-a",
+      "service-b"
+    ],
+    "services_count": 2,
+    "references": [
+      {
+        "component": "@exemplo/shared-utils",
+        "service": "service-a",
+        "file": "projects\\exemplo\\service-a\\index.js",
+        "line": 5,
+        "reference": "@exemplo/shared-utils",
+        "evidence": "import { formatMessage } from \"@exemplo/shared-utils\""
+      },
+      {
+        "component": "@exemplo/shared-utils",
+        "service": "service-b",
+        "file": "projects\\exemplo\\service-b\\index.js",
+        "line": 4,
+        "reference": "@exemplo/shared-utils",
+        "evidence": "require(\"@exemplo/shared-utils\")"
+      }
+    ],
+    "status": "candidate"
+  }
+]
