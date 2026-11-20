@@ -96,33 +96,38 @@ def export_json(results):
     print(f"JSON gerado: {output}")
 
 
+
 def export_csv(results):
     output = OUTPUT_DIR / "candidates.csv"
 
-    fields = [
-        "project",
-        "component",
-        "origin",
-        "location",
-        "declared_services",
-        "services_with_references",
-        "services_count",
-        "evidence",
-        "status",
-        "validation_status",
-        "component_type",
-        "organization",
-        "reuse_mechanism",
-        "reviewer_notes"
-    ]
+    columns = {
+        "project": "Projeto",
+        "component": "Componente",
+        "origin": "Origem",
+        "location": "Localização",
+        "declared_services": "Serviços declarantes",
+        "services_with_references": "Serviços com referências",
+        "services_count": "Quantidade de serviços",
+        "evidence": "Evidências",
+        "status": "Situação",
+        "validation_status": "Status da validação",
+        "component_type": "Tipo do componente",
+        "organization": "Organização",
+        "reuse_mechanism": "Mecanismo de reutilização",
+        "reviewer_notes": "Observações do revisor"
+    }
 
     with output.open(
         "w",
         newline="",
         encoding="utf-8-sig"
     ) as file:
-        writer = csv.DictWriter(file, fieldnames=fields)
-        writer.writeheader()
+        writer = csv.DictWriter(
+            file,
+            fieldnames=list(columns.keys())
+        )
+
+        writer.writerow(columns)
 
         for result in results:
             evidence = " | ".join(
