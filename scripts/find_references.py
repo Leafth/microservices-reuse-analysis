@@ -17,31 +17,80 @@ IGNORED_DIRECTORIES = {
     ".next"
 }
 
+
 IMPORT_PATTERNS = [
     # import express from "express"
     # import { Router } from "express"
     # import "express"
     re.compile(
-        r'\bimport\s+(?:[^;]*?\s+from\s+)?["\']([^"\']+)["\']',
-        re.MULTILINE
+        r'\bimport\s+(?:[^;"\']*?\s+from\s+)?["\']([^"\']+)["\']'
     ),
 
-    # const express = require("express")
+    # require("express")
     re.compile(
         r'\brequire\s*\(\s*["\']([^"\']+)["\']\s*\)'
     ),
 
-    # const module = await import("express")
+    # import("express")
     re.compile(
         r'\bimport\s*\(\s*["\']([^"\']+)["\']\s*\)'
     ),
 
     # export { something } from "package"
     re.compile(
-        r'\bexport\s+[^;]*?\s+from\s+["\']([^"\']+)["\']',
-        re.MULTILINE
+        r'\bexport\s+[^;"\']*?\s+from\s+["\']([^"\']+)["\']'
     )
 ]
+
+TOKEN_PATTERN = re.compile(
+    r'(?P<comment>//[^\n]*|/\*[\s\S]*?\*/)'
+    r'|(?P<string>"(?:\\.|[^"\\])*"|'
+    r"'(?:\\.|[^'\\])*')"
+    r'|(?P<template>`(?:\\.|[^`\\])*`)',
+    re.DOTALL
+)
+
+
+def mask_text(text):
+    return "".join(
+        "\n" if char == "\n" else " "
+        for char in text
+    )
+
+
+def clean_source_code(content):
+    result = []
+    last_position = 0
+
+    for match in TOKEN_PATTERN.finditer(content):
+        start, end = match.span()
+
+        result.append(content[last_position:start])
+
+        token = match.group(0)
+
+        if match.group("comment") or match.group("template"):
+            result.append(mask_text(token))
+
+        else:
+            previous_code = "".join(result)
+
+            is_module_reference = re.search(
+                r'\b(?:from|import|require)\s*'
+                r'(?:\(\s*)?$',
+                previous_code
+            )
+
+            if is_module_reference:
+                result.append(token)
+            else:
+                result.append(mask_text(token))
+
+        last_position = end
+
+    result.append(content[last_position:])
+
+    return "".join(result)
 
 
 def get_package_name(module_path):
@@ -59,6 +108,7 @@ def get_package_name(module_path):
 def find_references(service_path, dependencies):
     service_path = Path(service_path)
     references = []
+    seen = set()
 
     for file_path in service_path.rglob("*"):
         if not file_path.is_file():
@@ -69,7 +119,7 @@ def find_references(service_path, dependencies):
 
         if any(
             part in IGNORED_DIRECTORIES
-            for part in file_path.parts
+            for part in file_path.relative_to(service_path).parts
         ):
             continue
 
@@ -78,8 +128,10 @@ def find_references(service_path, dependencies):
         except (UnicodeError, OSError):
             continue
 
+        cleaned_content = clean_source_code(content)
+
         for pattern in IMPORT_PATTERNS:
-            for match in pattern.finditer(content):
+            for match in pattern.finditer(cleaned_content):
                 module_path = match.group(1)
                 package_name = get_package_name(module_path)
 
@@ -90,13 +142,29 @@ def find_references(service_path, dependencies):
                     "\n", 0, match.start()
                 ) + 1
 
+                reference_key = (
+                    str(file_path),
+                    match.start(),
+                    module_path
+                )
+
+                if reference_key in seen:
+                    continue
+
+                seen.add(reference_key)
+
+                # Recupera a evidência do código original
+                original_evidence = content[
+                    match.start():match.end()
+                ]
+
                 references.append({
                     "component": package_name,
                     "service": service_path.name,
                     "file": str(file_path),
                     "line": line_number,
                     "reference": module_path,
-                    "evidence": match.group(0).strip()
+                    "evidence": original_evidence.strip()
                 })
 
     return references
@@ -110,18 +178,14 @@ if __name__ == "__main__":
     ]
 
     shared = find_shared_dependencies(services)
-
     dependency_names = set(shared.keys())
 
     all_references = []
 
     for service in services:
-        results = find_references(
-            service,
-            dependency_names
+        all_references.extend(
+            find_references(service, dependency_names)
         )
-
-        all_references.extend(results)
 
     print(json.dumps(
         all_references,
