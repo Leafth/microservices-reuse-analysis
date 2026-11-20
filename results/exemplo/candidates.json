@@ -13,7 +13,8 @@
       "service-a",
       "service-b"
     ],
-    "services_count": 3,
+    "declared_services_count": 3,
+    "referenced_services_count": 2,
     "references": [
       {
         "component": "express",
@@ -47,7 +48,8 @@
       "service-a",
       "service-b"
     ],
-    "services_count": 2,
+    "declared_services_count": 2,
+    "referenced_services_count": 2,
     "references": [
       {
         "component": "axios",
@@ -80,7 +82,8 @@
     "services_with_references": [
       "service-b"
     ],
-    "services_count": 2,
+    "declared_services_count": 2,
+    "referenced_services_count": 1,
     "references": [
       {
         "component": "lodash",
@@ -103,7 +106,8 @@
       "service-a",
       "service-b"
     ],
-    "services_count": 2,
+    "declared_services_count": null,
+    "referenced_services_count": 2,
     "references": [
       {
         "component": "@exemplo/shared-utils",
