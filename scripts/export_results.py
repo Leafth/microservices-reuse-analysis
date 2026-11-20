@@ -26,9 +26,8 @@ def collect_results():
 
     results = []
 
-    # Componentes de dependências declaradas em comum
     for name, data in shared.items():
-        # Evita duplicar pacotes internos
+
         if name in internal:
             continue
 
@@ -39,30 +38,39 @@ def collect_results():
                 find_references(service, {name})
             )
 
+        declared_services = sorted({
+            usage["service"]
+            for usage in data["usages"]
+        })
+
+        referenced_services = sorted({
+            ref["service"]
+            for ref in references
+        })
+
         results.append({
             "project": PROJECT_NAME,
             "component": name,
             "origin": "unverified",
             "location": "",
-            "declared_services": [
-                usage["service"]
-                for usage in data["usages"]
-            ],
-            "services_with_references": sorted({
-                ref["service"]
-                for ref in references
-            }),
-            "services_count": data["services_count"],
+            "declared_services": declared_services,
+            "services_with_references": referenced_services,
+            "declared_services_count": len(declared_services),
+            "referenced_services_count": len(referenced_services),
             "references": references,
             "status": "candidate"
         })
 
-    # Possíveis pacotes internos
     for name, data in internal.items():
         references = []
 
         for usage in data["usages"]:
             references.extend(usage["references"])
+
+        referenced_services = sorted({
+            ref["service"]
+            for ref in references
+        })
 
         results.append({
             "project": PROJECT_NAME,
@@ -70,11 +78,9 @@ def collect_results():
             "origin": "internal_candidate",
             "location": "; ".join(data["locations"]),
             "declared_services": [],
-            "services_with_references": sorted({
-                ref["service"]
-                for ref in references
-            }),
-            "services_count": data["services_count"],
+            "services_with_references": referenced_services,
+            "declared_services_count": None,
+            "referenced_services_count": len(referenced_services),
             "references": references,
             "status": "candidate"
         })
@@ -85,7 +91,10 @@ def collect_results():
 def export_json(results):
     output = OUTPUT_DIR / "candidates.json"
 
-    with output.open("w", encoding="utf-8") as file:
+    with output.open(
+        "w",
+        encoding="utf-8"
+    ) as file:
         json.dump(
             results,
             file,
@@ -96,24 +105,29 @@ def export_json(results):
     print(f"JSON gerado: {output}")
 
 
-
 def export_csv(results):
     output = OUTPUT_DIR / "candidates.csv"
 
     columns = {
         "project": "Projeto",
         "component": "Componente",
-        "origin": "Origem",
+        "origin": "Origem preliminar",
+        "validated_origin": "Origem validada",
         "location": "Localização",
         "declared_services": "Serviços declarantes",
         "services_with_references": "Serviços com referências",
-        "services_count": "Quantidade de serviços",
+        "declared_services_count": "Qtd. serviços declarantes",
+        "referenced_services_count": "Qtd. serviços com referências",
+        "confirmed_services": "Serviços confirmados",
+        "confirmed_services_count": "Qtd. serviços confirmados",
         "evidence": "Evidências",
-        "status": "Situação",
+        "status": "Situação da coleta",
         "validation_status": "Status da validação",
         "component_type": "Tipo do componente",
         "organization": "Organização",
         "reuse_mechanism": "Mecanismo de reutilização",
+        "analyst": "Responsável pela análise",
+        "reviewer": "Responsável pela revisão",
         "reviewer_notes": "Observações do revisor"
     }
 
@@ -122,6 +136,7 @@ def export_csv(results):
         newline="",
         encoding="utf-8-sig"
     ) as file:
+
         writer = csv.DictWriter(
             file,
             fieldnames=list(columns.keys())
@@ -130,6 +145,7 @@ def export_csv(results):
         writer.writerow(columns)
 
         for result in results:
+
             evidence = " | ".join(
                 f'{ref["file"]}:{ref["line"]} '
                 f'{ref["evidence"]}'
@@ -140,20 +156,32 @@ def export_csv(results):
                 "project": result["project"],
                 "component": result["component"],
                 "origin": result["origin"],
+                "validated_origin": "",
                 "location": result["location"],
                 "declared_services": "; ".join(
-                    sorted(set(result["declared_services"]))
+                    result["declared_services"]
                 ),
                 "services_with_references": "; ".join(
                     result["services_with_references"]
                 ),
-                "services_count": result["services_count"],
+                "declared_services_count": (
+                    result["declared_services_count"]
+                    if result["declared_services_count"] is not None
+                    else ""
+                ),
+                "referenced_services_count": result[
+                    "referenced_services_count"
+                ],
+                "confirmed_services": "",
+                "confirmed_services_count": "",
                 "evidence": evidence,
                 "status": result["status"],
                 "validation_status": "",
                 "component_type": "",
                 "organization": "",
                 "reuse_mechanism": "",
+                "analyst": "",
+                "reviewer": "",
                 "reviewer_notes": ""
             })
 
@@ -161,11 +189,16 @@ def export_csv(results):
 
 
 if __name__ == "__main__":
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
     results = collect_results()
 
     export_json(results)
     export_csv(results)
 
-    print(f"\nTotal de candidatos: {len(results)}")
+    print(
+        f"\nTotal de candidatos: {len(results)}"
+    )
