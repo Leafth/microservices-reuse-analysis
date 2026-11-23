@@ -105,12 +105,15 @@ def get_package_name(module_path):
     return parts[0]
 
 
-def find_references(service_path, dependencies):
+def find_references(service_path, dependencies, progress_callback=None):
     service_path = Path(service_path)
     references = []
     seen = set()
 
-    for file_path in service_path.rglob("*"):
+    for paths_seen, file_path in enumerate(service_path.rglob("*"), start=1):
+        if progress_callback is not None and paths_seen % 1000 == 0:
+            progress_callback(paths_seen)
+
         if not file_path.is_file():
             continue
 

@@ -39,8 +39,17 @@ def discover_internal_packages(project_path):
     return packages
 
 
-def find_internal_components(project_path, services):
-    packages = discover_internal_packages(project_path)
+def find_internal_components(
+    project_path, services, packages=None, references_by_name=None
+):
+    if packages is None:
+        packages = discover_internal_packages(project_path)
+
+    if references_by_name is None:
+        references_by_name = {name: [] for name in packages}
+        for service in services:
+            for reference in find_references(service, set(packages)):
+                references_by_name[reference["component"]].append(reference)
 
     shared = {}
 
@@ -48,10 +57,11 @@ def find_internal_components(project_path, services):
         usages = []
 
         for service in services:
-            references = find_references(
-                service,
-                {package_name}
-            )
+            references = [
+                reference
+                for reference in references_by_name[package_name]
+                if reference["service"] == Path(service).name
+            ]
 
             if references:
                 usages.append({

@@ -5,24 +5,62 @@ from pathlib import Path
 
 from find_shared_dependencies import find_shared_dependencies
 from find_references import find_references
-from find_internal_components import find_internal_components
+from find_internal_components import discover_internal_packages, find_internal_components
 
 
 PROJECT_NAME = "exemplo"
 PROJECT_PATH = "projects/exemplo"
 
 SERVICES = [
-    "projects/exemplo/service-a",
-    "projects/exemplo/service-b",
-    "projects/exemplo/service-c"
+    str(manifest.parent)
+    for manifest in sorted([
+        *(Path(PROJECT_PATH) / "pods").glob("*/package.json"),
+        *(Path(PROJECT_PATH) / "services").glob("*/package.json"),
+        *(Path(PROJECT_PATH) / "services").glob("*/pod-*/package.json"),
+        *(Path(PROJECT_PATH) / "services").glob("*/*-pod/package.json"),
+        Path(PROJECT_PATH) / "services/ai-bot/love-agent/package.json",
+    ])
+    if manifest.is_file()
 ]
 
 OUTPUT_DIR = Path("results") / PROJECT_NAME
 
 
 def collect_results():
+    print(f"Projeto: {PROJECT_NAME} ({len(SERVICES)} serviços)", flush=True)
+    print("Lendo dependências declaradas...", flush=True)
     shared = find_shared_dependencies(SERVICES)
-    internal = find_internal_components(PROJECT_PATH, SERVICES)
+    print(f"Dependências compartilhadas: {len(shared)}", flush=True)
+
+    print("Localizando pacotes internos...", flush=True)
+    packages = discover_internal_packages(PROJECT_PATH)
+    print(f"Pacotes internos encontrados: {len(packages)}", flush=True)
+
+    names = set(shared) | set(packages)
+    references_by_name = {name: [] for name in names}
+
+    for index, service in enumerate(SERVICES, start=1):
+        print(
+            f"[{index}/{len(SERVICES)}] Buscando referências em {service}...",
+            flush=True
+        )
+        references = find_references(
+            service,
+            names,
+            progress_callback=lambda count: print(
+                f"    {count} caminhos examinados em {service}...",
+                flush=True
+            )
+        )
+        for reference in references:
+            references_by_name[reference["component"]].append(reference)
+        print(f"    {len(references)} referências encontradas.", flush=True)
+
+    print("Consolidando candidatos internos...", flush=True)
+    internal = find_internal_components(
+        PROJECT_PATH, SERVICES, packages, references_by_name
+    )
+    print(f"Candidatos internos: {len(internal)}", flush=True)
 
     results = []
 
@@ -31,12 +69,7 @@ def collect_results():
         if name in internal:
             continue
 
-        references = []
-
-        for service in SERVICES:
-            references.extend(
-                find_references(service, {name})
-            )
+        references = references_by_name[name]
 
         declared_services = sorted({
             usage["service"]
@@ -196,6 +229,7 @@ if __name__ == "__main__":
 
     results = collect_results()
 
+    print(f"Exportando {len(results)} candidatos...", flush=True)
     export_json(results)
     export_csv(results)
 
