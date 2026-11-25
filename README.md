@@ -56,9 +56,3 @@ Cada registro inclui projeto, nome do componente, origem, localização quando d
 - No JSON, `references` contém registros com serviço, arquivo, linha, módulo referenciado e trecho de código. No CSV, `evidence` reúne os arquivos, linhas e trechos em uma coluna.
 
 Na revisão, abra os arquivos nas linhas indicadas, confronte as referências com os manifestos e verifique como o pacote é resolvido e utilizado em cada serviço. No exemplo versionado, `express` é declarado por três serviços e tem referências detectadas em dois. O CSV oferece as colunas `validation_status`, `component_type`, `organization`, `reuse_mechanism` e `reviewer_notes`, inicialmente vazias, para registrar a decisão, a classificação e as observações.
-
-## Limitações
-
-- A análise depende dos diretórios de serviços informados e se limita às dependências declaradas nos dois campos lidos. O agrupamento por nome não verifica compatibilidade de versões, dependências transitivas ou resolução de módulos.
-- A busca usa expressões regulares em arquivos `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs` e `.cjs`. Ela pode capturar trechos em comentários ou deixar de detectar referências construídas em tempo de execução. Caminhos relativos e absolutos são desconsiderados.
-- A busca por referências e manifestos internos desconsidera `node_modules`, `.git`, `dist`, `build`, `coverage` e `.next`. Referências textuais e coincidências de nomes exigem revisão para confirmar a origem do pacote e o reuso efetivo.
